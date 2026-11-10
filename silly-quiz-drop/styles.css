@@ -345,3 +345,5 @@ footer.foot a { color: var(--muted); }
 }
 
 .danger-zone .btn { white-space: normal; text-align: center; }
+
+@media (max-width: 420px) { .logo-text { font-size: 23px; } .logo-sub { font-size: 10px; letter-spacing: 1.5px; } }

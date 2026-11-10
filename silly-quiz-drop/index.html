@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Silly Quiz</title>
-  <meta name="description" content="Join the Silly Quiz and watch the live leaderboard." />
+  <title>A very silly quiz</title>
+  <meta name="description" content="Join A very silly quiz and watch the live leaderboard." />
   <meta name="theme-color" content="#ffd23f" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -19,7 +19,7 @@
     <header class="topbar">
       <a class="logo" href="/">
         <span class="logo-badge">?</span>
-        <span><span class="logo-text"><span class="s">Silly</span> Quiz</span><span class="logo-sub" id="quizName">Quiz night</span></span>
+        <span><span class="logo-text">A very <span class="s">silly</span> quiz</span><span class="logo-sub" id="quizName">Quiz night</span></span>
       </a>
       <span class="pill" id="liveStatus"><span class="live-dot"></span> Connecting…</span>
     </header>
@@ -76,7 +76,7 @@
     <ol class="board" id="board"></ol>
     <p class="hint" style="text-align:center">Tap a team to see round scores and any bonus or penalty points.</p>
 
-    <footer class="foot">Silly Quiz · <a href="/host">Host login</a></footer>
+    <footer class="foot">A very silly quiz · <a href="/host">Host login</a></footer>
   </main>
 
   <script src="common.js"></script>
@@ -157,8 +157,9 @@
     const ordinal = (n) => n + (["th", "st", "nd", "rd"][(n % 100 - 20) % 10] || ["th", "st", "nd", "rd"][n % 100] || "th");
     function render(s) {
       state = s;
-      document.title = `${s.title} · Leaderboard`;
-      $("#quizName").textContent = s.title === "Silly Quiz" ? "Quiz night" : s.title;
+      const isDefault = ["silly quiz", "a very silly quiz"].includes(s.title.toLowerCase());
+      document.title = `${isDefault ? "A very silly quiz" : s.title} · Leaderboard`;
+      $("#quizName").textContent = isDefault ? "Quiz night" : s.title;
       renderAnnouncements($("#announcements"), s);
 
       const myTeam = me && s.teams.find((t) => t.id === me.teamId);
