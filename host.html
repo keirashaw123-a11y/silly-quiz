@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Silly Quiz · Host</title>
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#ff4fa3" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="doodles" aria-hidden="true"><span>?</span><span>!</span><span>★</span><span>?</span></div>
+
+  <!-- LOGIN -->
+  <main class="wrap hidden" id="loginView">
+    <div class="login">
+      <div style="text-align:center;margin-bottom:22px">
+        <a class="logo" href="/"><span class="logo-badge">?</span><span><span class="logo-text"><span class="s">Silly</span> Quiz</span><span class="logo-sub">Host HQ</span></span></a>
+      </div>
+      <section class="card tilt-r" id="setupCard">
+        <h2>Set your host PIN 🔑</h2>
+        <p class="lede">First time here! Choose a PIN — you'll need it to get back into the host panel. Don't share it with the teams.</p>
+        <form id="setupForm">
+          <label for="newPin">New PIN</label>
+          <input id="newPin" type="password" minlength="4" maxlength="32" autocomplete="new-password" required />
+          <label for="newPin2">Type it again</label>
+          <input id="newPin2" type="password" minlength="4" maxlength="32" autocomplete="new-password" required />
+          <div class="error" id="setupError"></div>
+          <button class="btn big pink" type="submit">Save PIN &amp; start hosting</button>
+        </form>
+      </section>
+      <section class="card tilt-r" id="pinCard">
+        <h2>Host login 🎤</h2>
+        <p class="lede">Enter your host PIN to run the quiz.</p>
+        <form id="pinForm">
+          <label for="pin">Host PIN</label>
+          <input id="pin" type="password" maxlength="32" autocomplete="current-password" required />
+          <div class="error" id="pinError"></div>
+          <button class="btn big pink" type="submit">Let me in</button>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <!-- HOST PANEL -->
+  <main class="wrap wide hidden" id="hostView">
+    <header class="topbar">
+      <a class="logo" href="/" target="_blank" rel="noopener">
+        <span class="logo-badge">?</span>
+        <span><span class="logo-text"><span class="s">Silly</span> Quiz</span><span class="logo-sub">Host HQ</span></span>
+      </a>
+      <div class="row" style="flex-wrap:wrap;justify-content:flex-end">
+        <span class="pill" id="liveStatus"><span class="live-dot"></span> Connecting…</span>
+        <a class="btn white sm" href="/" target="_blank" rel="noopener">👀 Team view</a>
+        <button class="btn white sm" id="logout" type="button">Log out</button>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="row" style="flex-wrap:wrap;gap:16px;justify-content:space-between">
+        <div class="grow" style="min-width:260px">
+          <div style="font-weight:800;margin-bottom:6px">Send teams to this link</div>
+          <div class="share-box">
+            <input id="shareLink" readonly />
+            <button class="btn sky sm" id="copyLink" type="button">Copy</button>
+          </div>
+        </div>
+        <label class="switch"><input type="checkbox" id="regToggle" /><span class="track"></span><span id="regLabel">Registration open</span></label>
+      </div>
+    </section>
+
+    <div class="host-grid">
+      <!-- LEFT -->
+      <div>
+        <section class="card">
+          <div class="section-title">
+            <h2>Scores 📝</h2>
+            <button class="btn mint sm" id="addRound" type="button">+ Add round</button>
+          </div>
+          <p class="hint" style="margin:-4px 0 12px">Type a score and press Enter or tap away — it saves straight to the leaderboard. Totals include bonus/penalty points.</p>
+          <div class="score-wrap"><table class="scores" id="scoreTable"></table></div>
+          <div id="noTeams" class="empty hidden"><span class="big-emoji">🦆</span><b>Waiting for teams…</b><div class="hint">Share the link above — teams appear here as they join.</div></div>
+        </section>
+
+        <section class="card">
+          <div class="section-title"><h2>Teams 👥</h2><span class="hint" id="teamCount"></span></div>
+          <ul class="team-list" id="teamList"></ul>
+        </section>
+      </div>
+
+      <!-- RIGHT -->
+      <div>
+        <section class="card tilt-r">
+          <h2>Announcement 📣</h2>
+          <p class="lede">Pops up at the top of every team's leaderboard.</p>
+          <form id="announceForm">
+            <textarea id="announceText" maxlength="280" placeholder="e.g. 5 minute break — bar's open! 🍻" required></textarea>
+            <div class="counter"><span id="announceCount">0</span>/280</div>
+            <div class="error" id="announceError"></div>
+            <button class="btn pink big" type="submit" style="margin-top:8px">Announce it</button>
+          </form>
+          <ul class="log" id="announceLog" style="margin-top:14px"></ul>
+        </section>
+
+        <section class="card tilt-l">
+          <h2>Bonus &amp; penalties ⚖️</h2>
+          <p class="lede">Teams see the points and your reason.</p>
+          <form id="adjForm">
+            <label for="adjTeam">Team</label>
+            <select id="adjTeam" required></select>
+            <label>Points</label>
+            <div class="row">
+              <div class="seg" role="group" aria-label="Add or deduct">
+                <button type="button" class="minus on" data-sign="-1">− Deduct</button>
+                <button type="button" class="plus" data-sign="1">+ Add</button>
+              </div>
+              <input id="adjPoints" class="grow" type="number" inputmode="decimal" min="0" step="any" placeholder="e.g. 2" required />
+            </div>
+            <label for="adjReason">Reason</label>
+            <input id="adjReason" maxlength="140" placeholder="e.g. Caught googling the answers 👀" required />
+            <div class="quick" id="quickReasons"></div>
+            <div class="error" id="adjError"></div>
+            <button class="btn big" type="submit" id="adjBtn">Deduct points</button>
+          </form>
+          <ul class="log" id="adjLog" style="margin-top:14px"></ul>
+        </section>
+
+        <section class="card">
+          <h2>Settings ⚙️</h2>
+          <form id="titleForm">
+            <label for="quizTitle">Quiz name (shown to teams)</label>
+            <div class="row"><input id="quizTitle" maxlength="40" required /><button class="btn white sm" type="submit">Save</button></div>
+          </form>
+        </section>
+
+        <section class="card danger-zone">
+          <h2>Danger zone 💥</h2>
+          <p class="lede">Use between quiz nights.</p>
+          <div class="row" style="flex-wrap:wrap">
+            <button class="btn white grow" id="resetScores" type="button">Clear scores (keep teams)</button>
+            <button class="btn red grow" id="newGame" type="button">Start a brand-new quiz</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script src="common.js"></script>
+  <script>
+    const { $, esc, api, fmt, signed, clock, timeAgo, standings, poll, toast } = SQ;
+    const PIN_KEY = "silly-quiz-host-pin";
+    let pin = sessionStorage.getItem(PIN_KEY) || "";
+    let state = null;
+    let live = null;
+    let sign = -1;
+
+    // ---------- auth ----------
+    async function boot() {
+      if (pin) {
+        try { await api("host", { method: "POST", pin, body: { action: "verify" } }); return startHost(); }
+        catch { sessionStorage.removeItem(PIN_KEY); pin = ""; }
+      }
+      let status = { configured: true };
+      try { status = await api("host/status"); } catch {}
+      $("#setupCard").classList.toggle("hidden", status.configured);
+      $("#pinCard").classList.toggle("hidden", !status.configured);
+      $("#loginView").classList.remove("hidden");
+      (status.configured ? $("#pin") : $("#newPin")).focus();
+    }
+
+    $("#setupForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const a = $("#newPin").value, b = $("#newPin2").value;
+      if (a !== b) return ($("#setupError").textContent = "Those PINs don't match.");
+      try {
+        await api("host/setup", { method: "POST", body: { pin: a } });
+        pin = a; sessionStorage.setItem(PIN_KEY, pin); startHost();
+      } catch (err) {
+        $("#setupError").textContent = err.message;
+        if (err.status === 409) { $("#setupCard").classList.add("hidden"); $("#pinCard").classList.remove("hidden"); }
+      }
+    };
+
+    $("#pinForm").onsubmit = async (e) => {
+      e.preventDefault();
+      try {
+        const p = $("#pin").value;
+        await api("host", { method: "POST", pin: p, body: { action: "verify" } });
+        pin = p; sessionStorage.setItem(PIN_KEY, pin); startHost();
+      } catch (err) { $("#pinError").textContent = err.message; }
+    };
+
+    $("#logout").onclick = () => { sessionStorage.removeItem(PIN_KEY); location.reload(); };
+
+    function startHost() {
+      $("#loginView").classList.add("hidden");
+      $("#hostView").classList.remove("hidden");
+      $("#shareLink").value = location.origin + "/";
+      live = poll((s, opts) => { if (!opts?.unchanged) render(s); }, { statusEl: $("#liveStatus") });
+    }
+
+    async function act(action, data = {}, { quiet } = {}) {
+      try {
+        const res = await api("host", { method: "POST", pin, body: { action, ...data } });
+        if (res.state) render(res.state);
+        return res;
+      } catch (err) {
+        if (err.status === 401) { toast("PIN rejected — please log in again"); sessionStorage.removeItem(PIN_KEY); setTimeout(() => location.reload(), 1200); }
+        else if (!quiet) toast(err.message);
+        throw err;
+      }
+    }
+
+    // ---------- render ----------
+    let tableSig = "";
+    function render(s) {
+      state = s;
+      const rows = standings(s);
+
+      $("#regToggle").checked = s.registrationOpen;
+      $("#regLabel").textContent = s.registrationOpen ? "Registration open" : "Registration closed";
+      if (document.activeElement !== $("#quizTitle")) $("#quizTitle").value = s.title;
+
+      // score table — rebuild only when teams/rounds change, so typing isn't interrupted
+      const sig = JSON.stringify([s.teams.map((t) => [t.id, t.name, t.members.length]), s.rounds]);
+      $("#noTeams").classList.toggle("hidden", s.teams.length > 0);
+      $("#scoreTable").classList.toggle("hidden", !s.teams.length);
+      if (sig !== tableSig) { tableSig = sig; buildTable(s); }
+      for (const input of document.querySelectorAll("#scoreTable input")) {
+        if (input === document.activeElement || input.dataset.dirty) continue;
+        const v = s.scores[input.dataset.team]?.[input.dataset.round];
+        input.value = v === undefined ? "" : v;
+      }
+      for (const r of rows) {
+        const cell = document.querySelector(`#scoreTable [data-total="${r.id}"]`);
+        if (cell) cell.innerHTML = `${fmt(r.total)}${r.adjTotal ? `<div class="hint" style="margin:0;font-family:var(--body)">${signed(r.adjTotal)} adj</div>` : ""}`;
+      }
+
+      // teams
+      $("#teamCount").textContent = `${s.teams.length} team${s.teams.length === 1 ? "" : "s"}`;
+      const rankOf = Object.fromEntries(rows.map((r) => [r.id, r]));
+      $("#teamList").innerHTML = s.teams.length ? s.teams.map((t) => `
+        <li><div><b>${esc(t.name)}</b> <span class="hint">· ${fmt(rankOf[t.id].total)} pts</span><small>${t.members.map(esc).join(", ")}</small></div>
+        <button class="btn white sm" data-remove="${t.id}" type="button">Remove</button></li>`).join("")
+        : '<li class="hint">No teams yet.</li>';
+
+      // adjust team select
+      const sel = $("#adjTeam"), prev = sel.value;
+      sel.innerHTML = `<option value="">Choose a team…</option>` + s.teams.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
+      if (s.teams.some((t) => t.id === prev)) sel.value = prev;
+
+      // logs
+      const teamName = (id) => s.teams.find((t) => t.id === id)?.name || "Removed team";
+      $("#adjLog").innerHTML = s.adjustments.map((a) => `
+        <li><span class="adj-pts ${a.points < 0 ? "neg" : "pos"}">${signed(a.points)}</span>
+        <div><b>${esc(teamName(a.teamId))}</b> — ${esc(a.reason)}<small>${clock(a.at)}</small></div>
+        <button class="icon-btn xs" data-undo="${a.id}" title="Undo" aria-label="Undo">↺</button></li>`).join("");
+      $("#announceLog").innerHTML = s.announcements.map((a, i) => `
+        <li><div>${i === 0 ? "<b>Showing now:</b> " : ""}${esc(a.text)}<small>${clock(a.at)} · ${timeAgo(a.at)}</small></div>
+        <button class="icon-btn xs" data-unannounce="${a.id}" title="Delete" aria-label="Delete announcement">×</button></li>`).join("");
+    }
+
+    function buildTable(s) {
+      const rows = standings(s);
+      const order = rows.length ? rows.map((r) => r.id) : [];
+      const teams = order.map((id) => s.teams.find((t) => t.id === id));
+      $("#scoreTable").innerHTML = `
+        <thead><tr>
+          <th class="team-col">Team</th>
+          ${s.rounds.map((r) => `<th><span class="round-head">${esc(r.name)}
+            <button type="button" data-rename="${r.id}" title="Rename round" aria-label="Rename ${esc(r.name)}">✏️</button>
+            <button type="button" data-delround="${r.id}" title="Delete round" aria-label="Delete ${esc(r.name)}">🗑️</button></span></th>`).join("")}
+          <th>Total</th>
+        </tr></thead>
+        <tbody>${teams.map((t) => `<tr>
+          <td class="team-col"><b>${esc(t.name)}</b><small>${t.members.length} player${t.members.length === 1 ? "" : "s"}</small></td>
+          ${s.rounds.map((r) => `<td><input type="number" inputmode="decimal" step="any" data-team="${t.id}" data-round="${r.id}" aria-label="${esc(t.name)} – ${esc(r.name)}" /></td>`).join("")}
+          <td class="tot" data-total="${t.id}"></td>
+        </tr>`).join("")}</tbody>`;
+    }
+
+    // ---------- score entry ----------
+    async function saveScore(input) {
+      if (!input.dataset.dirty) return;
+      delete input.dataset.dirty;
+      input.className = "saving";
+      try {
+        await act("setScore", { teamId: input.dataset.team, roundId: input.dataset.round, score: input.value }, { quiet: true });
+        input.className = "saved";
+        setTimeout(() => input.classList.remove("saved"), 700);
+      } catch (err) {
+        input.className = "failed";
+        toast(err.message);
+      }
+    }
+    $("#scoreTable").addEventListener("input", (e) => { if (e.target.matches("input")) e.target.dataset.dirty = "1"; });
+    $("#scoreTable").addEventListener("change", (e) => { if (e.target.matches("input")) saveScore(e.target); });
+    $("#scoreTable").addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" || !e.target.matches("input")) return;
+      e.preventDefault();
+      const inputs = [...document.querySelectorAll(`#scoreTable input[data-round="${e.target.dataset.round}"]`)];
+      const next = inputs[inputs.indexOf(e.target) + 1];
+      saveScore(e.target);
+      (next || e.target).focus();
+      if (next) next.select();
+    });
+    $("#scoreTable").addEventListener("click", async (e) => {
+      const rn = e.target.closest("[data-rename]");
+      const dl = e.target.closest("[data-delround]");
+      if (rn) {
+        const round = state.rounds.find((r) => r.id === rn.dataset.rename);
+        const name = prompt("Rename round", round.name);
+        if (name && name.trim()) act("renameRound", { roundId: round.id, name }).catch(() => {});
+      }
+      if (dl) {
+        const round = state.rounds.find((r) => r.id === dl.dataset.delround);
+        if (confirm(`Delete "${round.name}" and all its scores?`)) act("deleteRound", { roundId: round.id }).catch(() => {});
+      }
+    });
+    $("#addRound").onclick = () => act("addRound", { name: `Round ${state.rounds.length + 1}` }).then(() => toast("Round added")).catch(() => {});
+
+    // ---------- registration ----------
+    $("#regToggle").onchange = (e) => act("toggleRegistration", { open: e.target.checked }).catch(() => {});
+    $("#copyLink").onclick = async () => {
+      try { await navigator.clipboard.writeText($("#shareLink").value); toast("Link copied 📋"); }
+      catch { $("#shareLink").select(); }
+    };
+
+    // ---------- teams ----------
+    $("#teamList").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-remove]");
+      if (!b) return;
+      const t = state.teams.find((x) => x.id === b.dataset.remove);
+      if (confirm(`Remove "${t.name}" and all their points?`)) act("removeTeam", { teamId: t.id }).then(() => toast("Team removed")).catch(() => {});
+    });
+
+    // ---------- announcements ----------
+    $("#announceText").oninput = (e) => ($("#announceCount").textContent = e.target.value.length);
+    $("#announceForm").onsubmit = async (e) => {
+      e.preventDefault();
+      $("#announceError").textContent = "";
+      try {
+        await act("announce", { text: $("#announceText").value }, { quiet: true });
+        $("#announceText").value = ""; $("#announceCount").textContent = 0;
+        toast("Announced! 📣");
+      } catch (err) { $("#announceError").textContent = err.message; }
+    };
+    $("#announceLog").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-unannounce]");
+      if (b) act("deleteAnnouncement", { announcementId: b.dataset.unannounce }).catch(() => {});
+    });
+
+    // ---------- adjustments ----------
+    const QUICK = {
+      "-1": ["Phones out 📱", "Shouting answers 📢", "Cheeky googling 👀", "Late answer sheet ⏰", "Bribing the host 💸"],
+      "1": ["Best team name 🏅", "Funniest wrong answer 😂", "Bought the host a drink 🍻", "Fancy dress effort 🎭", "Tiebreaker win ⚡"],
+    };
+    function setSign(v) {
+      sign = v;
+      document.querySelectorAll(".seg button").forEach((b) => b.classList.toggle("on", Number(b.dataset.sign) === v));
+      $("#adjBtn").textContent = v < 0 ? "Deduct points" : "Add points";
+      $("#adjBtn").className = `btn big ${v < 0 ? "red" : "mint"}`;
+      $("#quickReasons").innerHTML = QUICK[v].map((q) => `<button type="button">${q}</button>`).join("");
+    }
+    document.querySelectorAll(".seg button").forEach((b) => (b.onclick = () => setSign(Number(b.dataset.sign))));
+    $("#quickReasons").addEventListener("click", (e) => { if (e.target.matches("button")) $("#adjReason").value = e.target.textContent; });
+    setSign(-1);
+
+    $("#adjForm").onsubmit = async (e) => {
+      e.preventDefault();
+      $("#adjError").textContent = "";
+      const pts = Math.abs(Number($("#adjPoints").value));
+      if (!$("#adjTeam").value) return ($("#adjError").textContent = "Pick a team.");
+      if (!pts) return ($("#adjError").textContent = "Enter how many points.");
+      try {
+        await act("adjust", { teamId: $("#adjTeam").value, points: sign * pts, reason: $("#adjReason").value }, { quiet: true });
+        $("#adjPoints").value = ""; $("#adjReason").value = "";
+        toast(sign < 0 ? `−${fmt(pts)} applied` : `+${fmt(pts)} applied`);
+      } catch (err) { $("#adjError").textContent = err.message; }
+    };
+    $("#adjLog").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-undo]");
+      if (b && confirm("Undo this adjustment?")) act("deleteAdjustment", { adjustmentId: b.dataset.undo }).then(() => toast("Undone")).catch(() => {});
+    });
+
+    // ---------- settings ----------
+    $("#titleForm").onsubmit = (e) => { e.preventDefault(); act("setTitle", { title: $("#quizTitle").value }).then(() => toast("Saved")).catch(() => {}); };
+    $("#resetScores").onclick = () => {
+      if (confirm("Clear all scores, adjustments and announcements? Teams stay signed up.")) act("resetScores").then(() => toast("Scores cleared")).catch(() => {});
+    };
+    $("#newGame").onclick = () => {
+      if (prompt('This removes every team and score. Type NEW to confirm.') === "NEW") act("newGame").then(() => toast("Fresh quiz ready ✨")).catch(() => {});
+    };
+
+    boot();
+  </script>
+</body>
+</html>

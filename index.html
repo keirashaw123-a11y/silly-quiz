@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Silly Quiz</title>
+  <meta name="description" content="Join the Silly Quiz and watch the live leaderboard." />
+  <meta name="theme-color" content="#ffd23f" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="doodles" aria-hidden="true"><span>?</span><span>!</span><span>★</span><span>?</span></div>
+
+  <main class="wrap">
+    <header class="topbar">
+      <a class="logo" href="/">
+        <span class="logo-badge">?</span>
+        <span><span class="logo-text"><span class="s">Silly</span> Quiz</span><span class="logo-sub" id="quizName">Quiz night</span></span>
+      </a>
+      <span class="pill" id="liveStatus"><span class="live-dot"></span> Connecting…</span>
+    </header>
+
+    <div id="announcements"></div>
+
+    <!-- Join form -->
+    <section class="card tilt-l hidden" id="joinCard">
+      <h2>Join the quiz 🎉</h2>
+      <p class="lede">Pick a gloriously silly team name and tell us who's playing.</p>
+      <form id="joinForm" autocomplete="off">
+        <label for="teamName">Team name</label>
+        <input id="teamName" maxlength="40" placeholder="e.g. Quiz Akabusi" required />
+        <label>Team members</label>
+        <div id="members"></div>
+        <button type="button" class="add-member" id="addMember">+ Add another player</button>
+        <div class="error" id="joinError"></div>
+        <button class="btn big pink" type="submit" id="joinBtn">Let's get silly →</button>
+      </form>
+    </section>
+
+    <section class="card hidden" id="closedCard">
+      <h2>Registration is closed 🔒</h2>
+      <p class="lede" style="margin:0">The host isn't taking new teams right now — but you can still follow the leaderboard below.</p>
+    </section>
+
+    <!-- My team -->
+    <section class="card hidden" id="myTeamCard">
+      <div class="my-team-bar">
+        <div>
+          <div class="hint" style="margin:0 0 2px">You're playing as</div>
+          <div class="h2" id="myTeamName"></div>
+          <div class="hint" id="myTeamRank" style="margin-top:2px;font-weight:700"></div>
+        </div>
+        <button class="btn white sm" id="editBtn" type="button">✏️ Edit players</button>
+      </div>
+      <form id="editForm" class="hidden" autocomplete="off">
+        <label>Team members</label>
+        <div id="editMembers"></div>
+        <button type="button" class="add-member" id="addEditMember">+ Add another player</button>
+        <div class="error" id="editError"></div>
+        <div class="row" style="margin-top:14px">
+          <button class="btn mint grow" type="submit">Save players</button>
+          <button class="btn white" type="button" id="cancelEdit">Cancel</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Leaderboard -->
+    <div class="board-head">
+      <h1 class="board-title"><span class="hl">Leaderboard</span></h1>
+      <span class="hint" id="roundInfo"></span>
+    </div>
+    <ol class="board" id="board"></ol>
+    <p class="hint" style="text-align:center">Tap a team to see round scores and any bonus or penalty points.</p>
+
+    <footer class="foot">Silly Quiz · <a href="/host">Host login</a></footer>
+  </main>
+
+  <script src="common.js"></script>
+  <script>
+    const { $, api, renderBoard, renderAnnouncements, standings, poll, toast, confetti } = SQ;
+    const KEY = "silly-quiz-team";
+    let me = null;
+    try { me = JSON.parse(localStorage.getItem(KEY)); } catch {}
+    let state = null;
+
+    // ----- member inputs -----
+    function memberRow(container, value = "") {
+      const row = document.createElement("div");
+      row.className = "member-row";
+      row.innerHTML = `<input maxlength="40" placeholder="Player name" aria-label="Player name" /><button type="button" class="icon-btn" aria-label="Remove player">×</button>`;
+      row.querySelector("input").value = value;
+      row.querySelector("button").onclick = () => {
+        if (container.children.length > 1) row.remove(); else row.querySelector("input").value = "";
+      };
+      container.append(row);
+      return row.querySelector("input");
+    }
+    const readMembers = (container) => [...container.querySelectorAll("input")].map((i) => i.value.trim()).filter(Boolean);
+
+    const membersEl = $("#members");
+    ["", ""].forEach(() => memberRow(membersEl));
+    $("#addMember").onclick = () => {
+      if (membersEl.children.length >= 12) return toast("12 players max!");
+      memberRow(membersEl).focus();
+    };
+
+    // ----- join -----
+    $("#joinForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const btn = $("#joinBtn");
+      $("#joinError").textContent = "";
+      btn.disabled = true; btn.textContent = "Joining…";
+      try {
+        const res = await api("join", { method: "POST", body: { name: $("#teamName").value, members: readMembers(membersEl) } });
+        me = { teamId: res.teamId, token: res.token };
+        localStorage.setItem(KEY, JSON.stringify(me));
+        confetti();
+        toast("You're in! Good luck 🍀");
+        live.force();
+      } catch (err) {
+        $("#joinError").textContent = err.message;
+      } finally {
+        btn.disabled = false; btn.textContent = "Let's get silly →";
+      }
+    };
+
+    // ----- edit -----
+    const editMembers = $("#editMembers");
+    $("#editBtn").onclick = () => {
+      const team = state?.teams.find((t) => t.id === me?.teamId);
+      if (!team) return;
+      editMembers.innerHTML = "";
+      team.members.forEach((m) => memberRow(editMembers, m));
+      $("#editError").textContent = "";
+      $("#editForm").classList.remove("hidden");
+      $("#editBtn").classList.add("hidden");
+    };
+    const closeEdit = () => { $("#editForm").classList.add("hidden"); $("#editBtn").classList.remove("hidden"); };
+    $("#cancelEdit").onclick = closeEdit;
+    $("#addEditMember").onclick = () => {
+      if (editMembers.children.length >= 12) return toast("12 players max!");
+      memberRow(editMembers).focus();
+    };
+    $("#editForm").onsubmit = async (e) => {
+      e.preventDefault();
+      try {
+        await api("team/update", { method: "POST", body: { ...me, members: readMembers(editMembers) } });
+        closeEdit(); toast("Players updated ✨"); live.force();
+      } catch (err) { $("#editError").textContent = err.message; }
+    };
+
+    // ----- render -----
+    const ordinal = (n) => n + (["th", "st", "nd", "rd"][(n % 100 - 20) % 10] || ["th", "st", "nd", "rd"][n % 100] || "th");
+    function render(s) {
+      state = s;
+      document.title = `${s.title} · Leaderboard`;
+      $("#quizName").textContent = s.title === "Silly Quiz" ? "Quiz night" : s.title;
+      renderAnnouncements($("#announcements"), s);
+
+      const myTeam = me && s.teams.find((t) => t.id === me.teamId);
+      if (me && !myTeam) { localStorage.removeItem(KEY); me = null; }
+
+      $("#myTeamCard").classList.toggle("hidden", !myTeam);
+      $("#joinCard").classList.toggle("hidden", !!myTeam || !s.registrationOpen);
+      $("#closedCard").classList.toggle("hidden", !!myTeam || s.registrationOpen);
+
+      if (myTeam) {
+        $("#myTeamName").textContent = myTeam.name;
+        const row = standings(s).find((r) => r.id === myTeam.id);
+        $("#myTeamRank").textContent = `Currently ${ordinal(row.rank)} of ${s.teams.length} · ${SQ.fmt(row.total)} pts`;
+      }
+
+      const scored = s.rounds.filter((r) => s.teams.some((t) => s.scores[t.id]?.[r.id] !== undefined)).length;
+      $("#roundInfo").textContent = s.rounds.length ? `${scored} of ${s.rounds.length} rounds scored · ${s.teams.length} teams` : "";
+      renderBoard($("#board"), s, { myTeamId: myTeam?.id });
+    }
+
+    const live = poll((s, opts) => {
+      if (opts?.unchanged) { renderAnnouncements($("#announcements"), s); return; }
+      render(s);
+    }, { statusEl: $("#liveStatus") });
+  </script>
+</body>
+</html>

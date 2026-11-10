@@ -1,0 +1,10 @@
+{
+  "name": "silly-quiz",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Silly Quiz \u2014 live quiz-night scoreboard with host and team views",
+  "type": "module",
+  "dependencies": {
+    "@netlify/blobs": "^11.1.9"
+  }
+}
